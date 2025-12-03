@@ -1,3 +1,6 @@
+```bash bash <(curl -sSL https://raw.githubusercontent.com/macbservices/hospedagem-linux-cloudflare/main/install.sh)
+
+
 # 🚀 Hospedagem-TVBOX-PHP
 
 **Instalação PHP + Apache + Cloudflare Tunnel em 1 comando no TV Box Ubuntu 18.04 (RK322x)**
