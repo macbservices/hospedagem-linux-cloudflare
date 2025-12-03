@@ -1,1 +1,1 @@
-``` bash <(curl -sSL https://raw.githubusercontent.com/macbservices/hospedagem-linux-cloudflare/main/install.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/macbservices/hospedagem-linux-cloudflare/main/install.sh)
