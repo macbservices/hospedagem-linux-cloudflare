@@ -1,0 +1,7 @@
+tunnel: TUNEL_NAME
+credentials-file: /etc/cloudflared/TUNEL_NAME.json
+
+ingress:
+  - hostname: DOMINIO
+    service: http://localhost:80
+  - service: http_status:404
