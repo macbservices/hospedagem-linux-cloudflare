@@ -1,44 +1,52 @@
 #!/bin/bash
 clear
-echo "🚀 Hospedagem PHP TV Box - macbservices v2.0"
+echo "🚀 Hospedagem Site TV Box - macbservices v3.0 (Apache + PHP7.4 + Cloudflare)"
+echo "Otimizado para arquivos do Google Drive - Ubuntu 18.04 RK322x"
+sleep 2
+
+# Fix DNS primeiro (problema comum no TV Box)
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 
 apt update && apt upgrade -y -qq
-apt install -y apache2 php7.4 libapache2-mod-php7.4 php7.4-mysql php7.4-curl php7.4-gd php7.4-mbstring php7.4-xml php7.4-zip
+apt install -y apache2 php7.4 libapache2-mod-php7.4 php7.4-curl php7.4-gd php7.4-mbstring php7.4-xml wget curl
 
+# Config PHP handler (corrige código na tela)
 cat > /etc/apache2/conf-available/php-handler.conf << 'EOF'
 <FilesMatch \.php$>
     SetHandler application/x-httpd-php
 </FilesMatch>
+<FilesMatch \.phps$>
+    SetHandler application/x-httpd-php-source
+</FilesMatch>
 EOF
 
-a2enconf php-handler && a2enmod php7.4 rewrite headers
-echo "ServerName localhost" >> /etc/apache2/apache2.conf
-sed -i 's/DirectoryIndex.*/DirectoryIndex index.php index.html index.htm/' /etc/apache2/mods-enabled/dir.conf
+a2enmod php7.4 rewrite
 systemctl restart apache2
 
-cat > /var/www/html/info.php << 'EOF'
-<?php phpinfo(); ?><h1>✅ PHP OK!</h1>
-EOF
+# Teste PHP
+echo "<?php phpinfo(); ?>" > /var/www/html/info.php
+chown -R www-data:www-data /var/www/html
 
-echo "✅ PHP funcionando!"
+echo "✅ Apache + PHP7.4 OK! Teste: http://$(hostname -I | awk '{print $1}')/info.php"
 
-mkdir -p /usr/share/keyrings
-curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/cloudflared.list
-apt update && apt install cloudflared -y
+# Cloudflare Tunnel
+echo "🔐 Configurando Cloudflare Tunnel..."
+cloudflared --version || {
+    wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -O /usr/local/bin/cloudflared
+    chmod +x /usr/local/bin/cloudflared
+}
+
+read -p "Digite o DOMÍNIO (ex: seunovo.grythprogress.com.br): " DOMINIO
+read -p "Digite o NOME do TÚNEL (ex: macb-site): " NOME_TUNEL
 
 cloudflared tunnel login
-read -p "Pressione Enter após autenticar..."
-
-read -p "Nome túnel: " NOME_TUNEL
-read -p "Domínio: " DOMINIO
+sleep 5
+ARQUIVO_CREDENCIAIS=$(ls ~/.cloudflared/*.json | head -1)
 
 cloudflared tunnel create $NOME_TUNEL
-ARQUIVO_CREDENCIAIS=$(ls ~/.cloudflared/*.json | head -n1)
-
-mkdir -p /etc/cloudflared
-cat > /etc/cloudflared/config.yml << EOF
-tunnel: $(basename $ARQUIVO_CREDENCIAIS .json)
+cat > ~/.cloudflared/config.yml << EOF
+tunnel: $NOME_TUNEL
 credentials-file: $ARQUIVO_CREDENCIAIS
 ingress:
   - hostname: $DOMINIO
@@ -50,4 +58,6 @@ cloudflared tunnel route dns $NOME_TUNEL $DOMINIO
 cloudflared service install
 systemctl enable cloudflared --now
 
-echo "🎉 Site PHP online: https://$DOMINIO"
+echo "🎉 SITE ONLINE: https://$DOMINIO"
+echo "📤 Coloque arquivos do Google Drive em /var/www/html/"
+echo "📊 Logs: journalctl -u cloudflared -f | journalctl -u apache2 -f"
