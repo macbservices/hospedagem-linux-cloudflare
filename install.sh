@@ -1,17 +1,18 @@
 #!/bin/bash
 clear
-echo "🚀 Hospedagem Site TV Box - macbservices v3.0 (Apache + PHP7.4 + Cloudflare)"
-echo "Otimizado para arquivos do Google Drive - Ubuntu 18.04 RK322x"
+echo "🚀 Hospedagem Completa TV Box - macbservices v3.0 (PHP + Cloudflare AUTO)"
+echo "Ubuntu 18.04 RK322x - 1 Comando Total!"
 sleep 2
 
-# Fix DNS primeiro (problema comum no TV Box)
+# DNS Fix (obrigatório pro TV Box)
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
 echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 
+# Apache + PHP7.4 Completo
 apt update && apt upgrade -y -qq
 apt install -y apache2 php7.4 libapache2-mod-php7.4 php7.4-curl php7.4-gd php7.4-mbstring php7.4-xml wget curl
 
-# Config PHP handler (corrige código na tela)
+# PHP Handler (corrige código na tela)
 cat > /etc/apache2/conf-available/php-handler.conf << 'EOF'
 <FilesMatch \.php$>
     SetHandler application/x-httpd-php
@@ -28,23 +29,24 @@ systemctl restart apache2
 echo "<?php phpinfo(); ?>" > /var/www/html/info.php
 chown -R www-data:www-data /var/www/html
 
-echo "✅ Apache + PHP7.4 OK! Teste: http://$(hostname -I | awk '{print $1}')/info.php"
+echo "✅ Apache + PHP OK! http://$(hostname -I | awk '{print $1}')/info.php"
 
-# Cloudflare Tunnel
-echo "🔐 Configurando Cloudflare Tunnel..."
-cloudflared --version || {
-    wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -O /usr/local/bin/cloudflared
-    chmod +x /usr/local/bin/cloudflared
-}
+# Cloudflare Tunnel AUTOMÁTICO (igual projeto HTML)
+echo "🔐 Cloudflare Tunnel AUTOMÁTICO (3min)..."
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -O /usr/local/bin/cloudflared
+chmod +x /usr/local/bin/cloudflared
 
-read -p "Digite o DOMÍNIO (ex: seunovo.grythprogress.com.br): " DOMINIO
-read -p "Digite o NOME do TÚNEL (ex: macb-site): " NOME_TUNEL
+read -p "DOMÍNIO (ex: seunovo.grythprogress.com.br): " DOMINIO
+read -p "NOME TÚNEL (ex: macb-site): " NOME_TUNEL
 
+# AUTOMÁTICO: Login → Credenciais → Tunnel → Config → DNS → Service
 cloudflared tunnel login
-sleep 5
+sleep 10
 ARQUIVO_CREDENCIAIS=$(ls ~/.cloudflared/*.json | head -1)
 
 cloudflared tunnel create $NOME_TUNEL
+TUNNEL_UUID=$(cloudflared tunnel list | grep $NOME_TUNEL | awk '{print $1}')
+
 cat > ~/.cloudflared/config.yml << EOF
 tunnel: $NOME_TUNEL
 credentials-file: $ARQUIVO_CREDENCIAIS
@@ -56,8 +58,8 @@ EOF
 
 cloudflared tunnel route dns $NOME_TUNEL $DOMINIO
 cloudflared service install
-systemctl enable cloudflared --now
+systemctl enable --now cloudflared
 
-echo "🎉 SITE ONLINE: https://$DOMINIO"
-echo "📤 Coloque arquivos do Google Drive em /var/www/html/"
-echo "📊 Logs: journalctl -u cloudflared -f | journalctl -u apache2 -f"
+echo "🎉 SITE 100% ONLINE: https://$DOMINIO"
+echo "📤 Baixe Google Drive → /var/www/html/"
+echo "📊 Logs: journalctl -u cloudflared -f"
